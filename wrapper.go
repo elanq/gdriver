@@ -19,12 +19,14 @@ type Wrapper interface {
 	OauthConfig() (*oauth2.Config, error)
 	Client() (*http.Client, error)
 	AuthCode() string
+	Drive() (*drive.Service, error)
 }
 
 type DefaultWrapper struct {
 	conf     *oauth2.Config
 	client   *http.Client
 	authCode string
+	drive    *drive.Service
 }
 
 func NewDefaultWrapperWithConfig() (*DefaultWrapper, error) {
@@ -75,7 +77,19 @@ func (d *DefaultWrapper) Client() (*http.Client, error) {
 	}
 
 	return client, nil
+}
 
+func (d *DefaultWrapper) Drive() (*drive.Service, error) {
+	client, err := d.Client()
+	if err != nil {
+		return nil, err
+	}
+
+	if d.drive != nil {
+		return d.drive, nil
+	}
+
+	return drive.New(client)
 }
 
 func (d *DefaultWrapper) newConfig() (*oauth2.Config, error) {
