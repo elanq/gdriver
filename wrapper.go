@@ -1,24 +1,84 @@
 package gdriver
 
 import (
-	"golang.org/x/oauth2"
+	"fmt"
 	"io/ioutil"
+	"net/http"
+
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
+	drive "google.golang.org/api/drive/v2"
 )
 
-const(
+const (
 	DefaultCredential = "credentials.json"
+	DefaultToken      = "token.json"
 )
 
 type Wrapper interface {
-	Token() (c *oauth2.Config, error)
+	OauthConfig() (*oauth2.Config, error)
 	Client() (*http.Client, error)
+	AuthCode() string
 }
 
 type DefaultWrapper struct {
-	c *oauth2.Config
+	conf     *oauth2.Config
+	client   *http.Client
+	authCode string
 }
 
-func (d *DefaultWrapper) Token() (c *oauth2.Config, error) {
+func NewDefaultWrapperWithConfig() (*DefaultWrapper, error) {
+	wrapper := &DefaultWrapper{}
+	conf, err := wrapper.newConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	wrapper.conf = conf
+
+	return wrapper, nil
+
+}
+
+func (d *DefaultWrapper) SetAuthCode() error {
+	var authCode string
+
+	fmt.Println("enter your oauth code from given link before:")
+	if _, err := fmt.Scan(&authCode); err != nil {
+		return err
+	}
+	d.authCode = authCode
+
+	return nil
+}
+
+func (d *DefaultWrapper) AuthCode() string {
+	return d.authCode
+}
+
+func (d *DefaultWrapper) OauthConfig() (*oauth2.Config, error) {
+	if d.conf != nil {
+		return d.conf, nil
+	}
+
+	return d.newConfig()
+}
+
+func (d *DefaultWrapper) Client() (*http.Client, error) {
+	if d.client != nil {
+		return d.client, nil
+	}
+
+	client, err := NewClient(d)
+	if err != nil {
+		return nil, err
+	}
+
+	return client, nil
+
+}
+
+func (d *DefaultWrapper) newConfig() (*oauth2.Config, error) {
 	f, err := ioutil.ReadFile(DefaultCredential)
 	if err != nil {
 		return nil, err
@@ -29,9 +89,7 @@ func (d *DefaultWrapper) Token() (c *oauth2.Config, error) {
 		return nil, err
 	}
 
-	return c, nil
-}
+	d.conf = c
 
-func (d *DefaultWrapper) Client() (*http.Client, error) {
-	return nil, nil
+	return c, nil
 }
