@@ -19,15 +19,17 @@ func main() {
 		panic(err)
 	}
 
-	url, err := gdriver.AuthURL(wrapper)
-	if err != nil {
-		panic(err)
-	}
+	if wrapper.AuthCode() == "" {
+		url, err := gdriver.AuthURL(wrapper)
+		if err != nil {
+			panic(err)
+		}
 
-	fmt.Println("please open this url ", url)
+		fmt.Println("please open this url ", url)
 
-	if err = wrapper.SetAuthCode(); err != nil {
-		panic(err)
+		if err = wrapper.SetAuthCode(); err != nil {
+			panic(err)
+		}
 	}
 
 	api, err := wrapper.Drive()
