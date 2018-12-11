@@ -1,8 +1,10 @@
 package gdriver
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 
 	"golang.org/x/oauth2"
@@ -15,11 +17,17 @@ const (
 	DefaultToken      = "token.json"
 )
 
+var (
+	ErrTokenNil = errors.New("Token has nil value, please authenticate first")
+)
+
 type Wrapper interface {
 	OauthConfig() (*oauth2.Config, error)
 	Client() (*http.Client, error)
 	AuthCode() string
 	Drive() (*drive.Service, error)
+	SetToken(*oauth2.Token) error
+	Token() (*oauth2.Token, bool)
 }
 
 type DefaultWrapper struct {
@@ -27,6 +35,7 @@ type DefaultWrapper struct {
 	client   *http.Client
 	authCode string
 	drive    *drive.Service
+	token    *oauth2.Token
 }
 
 func NewDefaultWrapperWithConfig() (*DefaultWrapper, error) {
@@ -42,6 +51,15 @@ func NewDefaultWrapperWithConfig() (*DefaultWrapper, error) {
 
 }
 
+func (d *DefaultWrapper) SetToken(token *oauth2.Token) error {
+	if token == nil {
+		return ErrTokenNil
+	}
+
+	d.token = token
+	return nil
+}
+
 func (d *DefaultWrapper) SetAuthCode() error {
 	var authCode string
 
@@ -52,6 +70,25 @@ func (d *DefaultWrapper) SetAuthCode() error {
 	d.authCode = authCode
 
 	return nil
+}
+
+func (d *DefaultWrapper) Token() (*oauth2.Token, bool) {
+	if d.token != nil {
+		log.Println("retrieving token by wrapper object")
+		return d.token, true
+	}
+
+	if token, err := FileToken(DefaultToken); err == nil {
+		log.Println("retrieving token by file")
+		return token, true
+	}
+
+	if token, err := WebToken(d); err == nil {
+		log.Println("retrieving token by web token")
+		return token, true
+	}
+
+	return d.token, false
 }
 
 func (d *DefaultWrapper) AuthCode() string {

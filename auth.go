@@ -29,6 +29,10 @@ func NewClient(w Wrapper) (*http.Client, error) {
 		return nil, err
 	}
 
+	if err = w.SetToken(token); err != nil {
+		return nil, err
+	}
+
 	client := conf.Client(context.Background(), token)
 	return client, nil
 }

@@ -19,7 +19,8 @@ func main() {
 		panic(err)
 	}
 
-	if wrapper.AuthCode() == "" {
+	// Re-auth if token not found
+	if _, found := wrapper.Token(); !found {
 		url, err := gdriver.AuthURL(wrapper)
 		if err != nil {
 			panic(err)
